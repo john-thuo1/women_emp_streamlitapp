@@ -5,7 +5,7 @@ from typing import Dict, List
 from utilities.utils import (setup_logger, load_categories)
 from omegaconf import OmegaConf
 
-config = OmegaConf.load('./utilities/config.yml')
+config = OmegaConf.load('./utilities/config.yaml')
 Logger = setup_logger(logger_file="app_logs")
 
 MODEL_PATH = config.general.MODEL_PATH
