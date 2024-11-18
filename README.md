@@ -15,13 +15,13 @@ This application uses a Logistic Regression Model to predict women's empowerment
 
    ```bash
    git clone https://github.com/yourusername/women-empowerment-predictor.git
-   cd women-empowerment-predictor```
+   cd women-empowerment-predictor
 2. Install Application Dependencies in your Virtual Env
     ```bash
     pip install -r requirements.txt
-    ```
+    
 3. Run Application
    ```bash
-   streamlit run app.py```
+   streamlit run app.py
    
    
