@@ -1,0 +1,18 @@
+{
+    "Trade Flows": ["Increasing", "Stable", "Decreasing"],
+    "Access to Finances": ["High", "Moderate", "Low"],
+    "Farming Type": ["Communal", "Single-household", "Mixed"],
+    "Education and Skills": ["Advanced", "Basic", "Intermediate"],
+    "Changes in Women's Income": ["Rising", "Falling", "Stable"],
+    "Clear Decision Points": ["Yes", "No", "Partial"],
+    "Policy Changes": ["Significant", "Minor", "None"],
+    "Complex Interactions": ["High", "Medium", "Low"],
+    "Feedback Loops": ["Present", "Absent", "Weak"],
+    "Intra-African Mobility": ["Increasing", "Decreasing", "Stable"],
+    "Legal Frameworks": ["Supportive", "Neutral", "Restrictive"],
+    "Social Norms and Gender Roles": ["Progressive", "Traditional", "Mixed"],
+    "Access to Childcare": ["Good", "Limited", "None"],
+    "Impact on Women": ["Positive", "Negative", "Neutral"],
+    "Value Chain Participation": ["High", "Moderate", "Low"],
+    "Health and Well-being": ["Improved", "Declining", "Stable"]
+}

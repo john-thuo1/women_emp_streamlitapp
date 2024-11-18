@@ -1,0 +1,3 @@
+general:
+  MODEL_PATH: "./utilities/model/v1_logistic_model.pkl"
+  FILE_PATH: "./utilities/categories/categories.json"

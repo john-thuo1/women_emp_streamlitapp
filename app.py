@@ -2,24 +2,31 @@ import streamlit as st
 import pickle
 from sklearn.preprocessing import LabelEncoder, StandardScaler
 from typing import Dict, List
-from logger import setup_logger
+from utilities.utils import (setup_logger, load_categories)
+from omegaconf import OmegaConf
 
+config = OmegaConf.load('./utilities/config.yml')
 Logger = setup_logger(logger_file="app_logs")
 
-MODEL_PATH = st.secrets["general"].get("MODEL_PATH")
+MODEL_PATH = config.general.MODEL_PATH
+FILE_PATH = config.general.FILE_PATH
+
+categories = load_categories(FILE_PATH)
+
 
 # Load the trained model
 @st.cache_data
 def load_model(model_path: str) -> pickle:
     """
-    Load a machine learning model from a pickle file.
-    
+    Loads a trained model from a specified file path.
+
     Args:
-        model_path (str): The path to the model pickle file.
-        
+        model_path (str): The file path to the saved model.
+
     Returns:
-        model: The loaded machine learning model.
+        pickle: The loaded model object.
     """
+
     try:
         Logger.info(f"Attempting to load the model from: {model_path}")
         with open(model_path, "rb") as file:
@@ -30,39 +37,20 @@ def load_model(model_path: str) -> pickle:
         Logger.error(f"File not found: {model_path}")
         raise e
 
-# Categories for Categorical Features
-categories = {
-    "Trade Flows": ["Increasing", "Stable", "Decreasing"],
-    "Access to Finances": ["High", "Moderate", "Low"],
-    "Farming Type": ["Communal", "Single-household", "Mixed"],
-    "Education and Skills": ["Advanced", "Basic", "Intermediate"],
-    "Changes in Women's Income": ["Rising", "Falling", "Stable"],
-    "Clear Decision Points": ["Yes", "No", "Partial"],
-    "Policy Changes": ["Significant", "Minor", "None"],
-    "Complex Interactions": ["High", "Medium", "Low"],
-    "Feedback Loops": ["Present", "Absent", "Weak"],
-    "Intra-African Mobility": ["Increasing", "Decreasing", "Stable"],
-    "Legal Frameworks": ["Supportive", "Neutral", "Restrictive"],
-    "Social Norms and Gender Roles": ["Progressive", "Traditional", "Mixed"],
-    "Access to Childcare": ["Good", "Limited", "None"],
-    "Impact on Women": ["Positive", "Negative", "Neutral"],
-    "Value Chain Participation": ["High", "Moderate", "Low"],
-    "Health and Well-being": ["Improved", "Declining", "Stable"]
-}
-
 label_encoders = {key: LabelEncoder().fit(value) for key, value in categories.items()}
 
 
 def encode_categorical_features(features: Dict[str, str]) -> List[int]:
     """
-    Encodes categorical features using LabelEncoder.
-    
+    Encodes categorical features into numerical values using LabelEncoder.
+
     Args:
-        features (Dict[str, str]): A dictionary containing feature names and their categorical values.
-        
+        features (Dict[str, str]): A dictionary where the keys are feature names and values are categorical feature values.
+
     Returns:
-        List[int]: A list of encoded values for the categorical features.
+        List[int]: A list of encoded numerical values for the categorical features.
     """
+
     encoded_features = []
     for feature_name, feature_value in features.items():
         if feature_name in label_encoders:
@@ -76,13 +64,14 @@ def encode_categorical_features(features: Dict[str, str]) -> List[int]:
 def scale_numerical_features(numerical_features: Dict[str, float]) -> List[float]:
     """
     Scales numerical features using StandardScaler.
-    
+
     Args:
-        numerical_features (Dict[str, float]): A dictionary containing feature names and their numerical values.
-        
+        numerical_features (Dict[str, float]): A dictionary where the keys are feature names and values are numerical feature values.
+
     Returns:
-        List[float]: A list of scaled numerical features.
+        List[float]: A list of scaled numerical values for the numerical features.
     """
+
     scaler = StandardScaler()
     
     numerical_data = list(numerical_features.values())
@@ -90,6 +79,22 @@ def scale_numerical_features(numerical_features: Dict[str, float]) -> List[float
     scaled_data = scaler.fit_transform(numerical_data_2d)  
     
     return scaled_data[0].tolist()  
+
+
+def predict_result(model, features) -> str:
+    """
+    Predicts the result based on the provided features using the trained model.
+
+    Args:
+        model: The trained model object.
+        features: The list of features to be passed to the model for prediction.
+
+    Returns:
+        str: The predicted result, either "Empowered" if >= 0.75 or "Not Empowered".
+    """
+
+    prediction = model.predict([features])[0]
+    return "Empowered" if prediction >= 0.75 else "Not Empowered"
 
 
 def main():
@@ -111,33 +116,38 @@ def main():
             form_inputs[category] = st.selectbox(label=category, options=options, index=None,
                                                  placeholder=f"Select {category.replace('_', ' ')}")
 
-        # Submit button for form
         submit_button = st.form_submit_button("Run Prediction")
 
     if submit_button:
-        features = {
-            "Business Ownership": business_ownership,
-            "Employment Rates": employment_rates,
-            "Women in Leadership": women_in_leadership,
-            "Tariff Rates": tariff_rates,
-        }
-        features.update(form_inputs)
+        try:
+            if any(
+                value is None for value in (business_ownership, employment_rates, women_in_leadership, tariff_rates)
+            ) or any(value == "" for value in form_inputs.values()):
+                raise ValueError("Please ensure all fields are filled.")
+            else: 
 
-        numerical_features = {key: value for key, value in features.items() if isinstance(value, (int, float))}
-        categorical_features = {key: value for key, value in features.items() if isinstance(value, str)}
+                features = {
+                    "Business Ownership": business_ownership,
+                    "Employment Rates": employment_rates,
+                    "Women in Leadership": women_in_leadership,
+                    "Tariff Rates": tariff_rates,
+                }
+                features.update(form_inputs)
 
-        # Encode categorical features
-        encoded_categorical_features = encode_categorical_features(categorical_features)
+                numerical_features = {key: value for key, value in features.items() if isinstance(value, (int, float))}
+                categorical_features = {key: value for key, value in features.items() if isinstance(value, str)}
+                encoded_categorical_features = encode_categorical_features(categorical_features)
+                scaled_numerical_features = scale_numerical_features(numerical_features)
 
-        # Scale numerical features
-        scaled_numerical_features = scale_numerical_features(numerical_features)
+                final_features = scaled_numerical_features + encoded_categorical_features
 
-        final_features = scaled_numerical_features + encoded_categorical_features
+                model = load_model(MODEL_PATH)
+                result = predict_result(model, final_features)
 
-        model = load_model(MODEL_PATH)
-        prediction = model.predict([final_features])[0]
-        result = "Empowered" if prediction == 1 else "Not Empowered"
-        st.write(f"Prediction: Women are {result}.")
+                st.success(f"Prediction: Women are {result} in this Organization.")
+        except ValueError as e:
+            st.error(f"Input Error: {e}")
+
 
 if __name__ == "__main__":
     main()
